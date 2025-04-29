@@ -1,16 +1,25 @@
 # social_network.py
+import os
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import sqlite3
 from dataclasses import dataclass
 from typing import List, Optional
+from dotenv import load_dotenv
+from neo4j import GraphDatabase
 
 # ======================
 # Database Access Layer
 # ======================
 class Database:
-    def __init__(self, db_name='social_network.db'):
-        self.db_name = db_name
-        self._init_db()
+    def __init__(self):
+        load_dotenv()
+        uri = os.environ.get("NEO4J_URI")
+        user = os.environ.get("NEO4J_USER")
+        password = os.environ.get("NEO4J_PASSWORD")
+        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+
+    def close(self):
+        self.driver.close()
     
     def _init_db(self):
         with self._get_connection() as conn:
