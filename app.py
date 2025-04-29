@@ -77,8 +77,24 @@ class Database:
                 for r in result
             ]
 
-    def get_feed(self, user_id: str):
-        pass
+    def get_feed(self, user_id: str) -> list:
+        with self.driver.session() as session:
+            result = session.run(
+                "MATCH (me:User {id: $user_id})-[:FOLLOWS]->(u:User)-[:POSTED]->(p:Post) "
+                "RETURN p, u "
+                "ORDER BY p.timestamp DESC",
+                user_id=user_id
+            )
+            return [
+                {
+                    "id": r["p"]["id"],
+                    "content": r["p"]["content"],
+                    "timestamp": str(r["p"]["timestamp"]),
+                    "username": r["u"]["username"],
+                    "name": r["u"]["name"]
+                }
+                for r in result
+            ]
 
     def follow_user(self, follower_id: str, followee_id: str) -> bool:
         with self.driver.session() as session:
