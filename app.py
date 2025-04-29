@@ -47,11 +47,35 @@ class Database:
             result = session.run("MATCH (u:User) RETURN u")
             return [{'id': u["u"]["id"], 'username': u["u"]["username"], 'name': u["u"]["name"]} for u in result]
 
-    def create_post(self, user_id: str, content: str):
-        pass
+    def create_post(self, user_id: str, content: str) -> str:
+        with self.driver.session() as session:
+            result = session.run(
+                "MATCH (u:User {id: $user_id}) "
+                "CREATE (p:Post {id: randomUUID(), content: $content, timestamp: datetime()}) "
+                "MERGE (u)-[:POSTED]->(p) "
+                "RETURN p.id AS id",
+                user_id=user_id, content=content
+            )
+            return result.single()["id"]
 
-    def get_posts_by_user(self, user_id: str):
-        pass
+    def get_posts_by_user(self, user_id: str) -> list:
+        with self.driver.session() as session:
+            result = session.run(
+                "MATCH (u:User {id: $user_id})-[:POSTED]->(p:Post) "
+                "RETURN p, u "
+                "ORDER BY p.timestamp DESC",
+                user_id=user_id
+            )
+            return [
+                {
+                    "id": r["p"]["id"],
+                    "content": r["p"]["content"],
+                    "timestamp": str(r["p"]["timestamp"]),
+                    "username": r["u"]["username"],
+                    "name": r["u"]["name"]
+                }
+                for r in result
+            ]
 
     def get_feed(self, user_id: str):
         pass
