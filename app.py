@@ -80,17 +80,39 @@ class Database:
     def get_feed(self, user_id: str):
         pass
 
-    def follow_user(self, follower_id: str, followee_id: str):
-        pass
+    def follow_user(self, follower_id: str, followee_id: str) -> bool:
+        with self.driver.session() as session:
+            session.run(
+                "MATCH (a:User {id: $follower_id}), (b:User {id: $followee_id}) "
+                "MERGE (a)-[:FOLLOWS]->(b)",
+                follower_id=follower_id, followee_id=followee_id
+            )
+            return True
 
-    def get_followers(self, user_id: str):
-        pass
+    def unfollow_user(self, follower_id: str, followee_id: str) -> bool:
+        with self.driver.session() as session:
+            session.run(
+                "MATCH (a:User {id: $follower_id})-[f:FOLLOWS]->(b:User {id: $followee_id}) "
+                "DELETE f",
+                follower_id=follower_id, followee_id=followee_id
+            )
+            return True
 
-    def get_following(self, user_id: str):
-        pass
+    def get_followers(self, user_id: str) -> list:
+        with self.driver.session() as session:
+            result = session.run(
+                "MATCH (f:User)-[:FOLLOWS]->(u:User {id: $user_id}) RETURN f",
+                user_id=user_id
+            )
+            return [{'id': r["f"]["id"], 'username': r["f"]["username"], 'name': r["f"]["name"]} for r in result]
 
-    def unfollow_user(self, follower_id: str, followee_id: str):
-        pass
+    def get_following(self, user_id: str) -> list:
+        with self.driver.session() as session:
+            result = session.run(
+                "MATCH (u:User {id: $user_id})-[:FOLLOWS]->(f:User) RETURN f",
+                user_id=user_id
+            )
+            return [{'id': r["f"]["id"], 'username': r["f"]["username"], 'name': r["f"]["name"]} for r in result]
 
 # ======================
 # Web Application
